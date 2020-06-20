@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://CRM.tscn" type="PackedScene" id=1]
+[ext_resource path="res://src/Network.gd" type="Script" id=2]
+
+[node name="Game" type="Node2D"]
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Network" type="Node2D" parent="World"]
+script = ExtResource( 2 )
+
+[node name="Nodes" type="Node2D" parent="World/Network"]
+
+[node name="Edges" type="Node2D" parent="World/Network"]
+
+[node name="CRM" parent="World" instance=ExtResource( 1 )]
