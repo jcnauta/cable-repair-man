@@ -1,17 +1,282 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=20 format=2]
 
 [ext_resource path="res://CRM.tscn" type="PackedScene" id=1]
 [ext_resource path="res://src/Network.gd" type="Script" id=2]
+[ext_resource path="res://src/World.gd" type="Script" id=3]
+[ext_resource path="res://images/node_white.png" type="Texture" id=4]
+[ext_resource path="res://chary___.ttf" type="DynamicFontData" id=5]
+[ext_resource path="res://src/Game.gd" type="Script" id=6]
+[ext_resource path="res://LevelTimer.gd" type="Script" id=7]
+[ext_resource path="res://retro_computer_personal_use.ttf" type="DynamicFontData" id=8]
+[ext_resource path="res://Countdown.gd" type="Script" id=9]
+
+[sub_resource type="SegmentShape2D" id=1]
+b = Vector2( 480, 0 )
+
+[sub_resource type="SegmentShape2D" id=2]
+a = Vector2( 0, 270 )
+b = Vector2( 480, 270 )
+
+[sub_resource type="SegmentShape2D" id=3]
+b = Vector2( 0, 270 )
+
+[sub_resource type="SegmentShape2D" id=4]
+a = Vector2( 480, 0 )
+b = Vector2( 480, 270 )
+
+[sub_resource type="DynamicFont" id=9]
+font_data = ExtResource( 5 )
+
+[sub_resource type="DynamicFont" id=10]
+size = 64
+font_data = ExtResource( 5 )
+
+[sub_resource type="GDScript" id=8]
+script/source = "extends Control
+
+signal next_level
+
+onready var score_label = $VBoxContainer/ScoreReport
+onready var next_text = $VBoxContainer/Control/NextLevel
+
+var timer
+
+func _ready():
+    set_process_input(false)
+
+func show_final_score():
+    visible = true
+    score_label.bbcode_text = \"[center]Total time: \" + (\"%.2f\" % Global.total_score) + \"[/center]\"
+    next_text.bbcode_text = \"[center]Press ENTER to set a higher score![/center]\"
+    accept_next(1.0)
+
+func show_level_score(score):
+    visible = true
+    score_label.bbcode_text = \"[center]Time: \" + (\"%.2f\" % score) + \"[/center]\"
+    next_text.bbcode_text = \"[center]Press ENTER for level \" + str(Global.lvl_idx + 2) + \"[/center]\"
+    accept_next()
+
+func accept_next(min_wait = 0.4):
+    timer = Timer.new()
+    self.add_child(timer)
+    timer.wait_time = min_wait
+    timer.connect(\"timeout\", self, \"accept_input\")
+    timer.start()
+    
+func accept_input(do_accept = true):
+    timer.disconnect(\"timeout\", self, \"accept_input\")
+    timer.queue_free()
+    self.set_process_input(true)
+
+func _input(event):
+    if event.is_action_pressed(\"ui_accept\"):
+        self.set_process_input(false)
+        emit_signal(\"next_level\")
+"
+
+[sub_resource type="DynamicFont" id=5]
+size = 14
+font_data = ExtResource( 8 )
+
+[sub_resource type="DynamicFont" id=6]
+size = 14
+font_data = ExtResource( 8 )
+
+[sub_resource type="GDScript" id=7]
+script/source = "extends RichTextLabel
+
+var tween_alphas = [1.0, 0.0]
+var tween_methods = [Tween.EASE_OUT, Tween.EASE_IN]
+var tween
+
+func _ready():
+    tween = Tween.new()
+    add_child(tween)
+    tween.connect(\"tween_completed\", self, \"_on_tween_completed\")
+    _start_blink()
+    
+func _start_blink():
+    tween.interpolate_property(self, \"modulate\", \\
+        Color(1.0, 0.0, 0.0, tween_alphas[0]), Color(0.0, 0.0, 1.0, tween_alphas[1]), 0.4, tween_methods[0])
+    tween.start()
+
+func _on_tween_completed(object, key):
+    tween_alphas.invert()
+    tween_methods.invert()
+    _start_blink()
+    
+"
 
 [node name="Game" type="Node2D"]
+script = ExtResource( 6 )
 
 [node name="World" type="Node2D" parent="."]
+script = ExtResource( 3 )
 
 [node name="Network" type="Node2D" parent="World"]
 script = ExtResource( 2 )
 
-[node name="Nodes" type="Node2D" parent="World/Network"]
-
 [node name="Edges" type="Node2D" parent="World/Network"]
 
+[node name="Nodes" type="Node2D" parent="World/Network"]
+
 [node name="CRM" parent="World" instance=ExtResource( 1 )]
+
+[node name="ScreenEdges" type="StaticBody2D" parent="World"]
+
+[node name="top" type="CollisionShape2D" parent="World/ScreenEdges"]
+shape = SubResource( 1 )
+
+[node name="bottom" type="CollisionShape2D" parent="World/ScreenEdges"]
+shape = SubResource( 2 )
+
+[node name="left" type="CollisionShape2D" parent="World/ScreenEdges"]
+shape = SubResource( 3 )
+
+[node name="right" type="CollisionShape2D" parent="World/ScreenEdges"]
+shape = SubResource( 4 )
+
+[node name="UI" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_top = 0.463287
+margin_right = 480.0
+margin_bottom = 270.463
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LevelTimer" type="RichTextLabel" parent="UI"]
+anchor_right = 1.0
+margin_right = 3.05176e-05
+margin_bottom = 120.0
+rect_min_size = Vector2( 480, 120 )
+rect_clip_content = false
+size_flags_horizontal = 3
+custom_fonts/normal_font = SubResource( 9 )
+bbcode_enabled = true
+scroll_active = false
+script = ExtResource( 7 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Countdown" type="RichTextLabel" parent="UI"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -240.0
+margin_top = -34.9999
+margin_right = 240.0
+margin_bottom = 65.0002
+rect_min_size = Vector2( 480, 100 )
+custom_fonts/normal_font = SubResource( 10 )
+bbcode_enabled = true
+bbcode_text = "[center]test[/center]"
+text = "test"
+script = ExtResource( 9 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="WinDialog" type="Control" parent="UI"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = SubResource( 8 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="TextureRect" type="TextureRect" parent="UI/WinDialog"]
+modulate = Color( 1, 1, 1, 0.784314 )
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -150.0
+margin_top = -50.0
+margin_right = 150.0
+margin_bottom = 50.0
+rect_min_size = Vector2( 300, 100 )
+texture = ExtResource( 4 )
+expand = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/WinDialog"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 90.0
+margin_top = 85.0
+margin_right = -90.0
+margin_bottom = -84.9997
+rect_min_size = Vector2( 300, 100 )
+size_flags_horizontal = 0
+size_flags_vertical = 0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Spacer" type="Control" parent="UI/WinDialog/VBoxContainer"]
+margin_right = 300.0
+margin_bottom = 10.0
+rect_min_size = Vector2( 0, 10 )
+
+[node name="LevelComplete" type="RichTextLabel" parent="UI/WinDialog/VBoxContainer"]
+margin_top = 14.0
+margin_right = 300.0
+margin_bottom = 39.0
+rect_min_size = Vector2( 200, 25 )
+size_flags_vertical = 0
+custom_fonts/normal_font = SubResource( 5 )
+custom_colors/default_color = Color( 0, 0, 0, 1 )
+bbcode_enabled = true
+bbcode_text = "[center]Level Complete[/center]"
+text = "Level Complete"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ScoreReport" type="RichTextLabel" parent="UI/WinDialog/VBoxContainer"]
+margin_top = 43.0
+margin_right = 300.0
+margin_bottom = 68.0
+rect_min_size = Vector2( 0, 25 )
+custom_fonts/normal_font = SubResource( 6 )
+custom_colors/default_color = Color( 0, 0, 0, 1 )
+bbcode_enabled = true
+bbcode_text = "[center]Time: 14.79s[/center]"
+text = "Time: 14.79s"
+
+[node name="Control" type="Control" parent="UI/WinDialog/VBoxContainer"]
+margin_top = 72.0
+margin_right = 300.0
+margin_bottom = 97.0
+rect_min_size = Vector2( 0, 25 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="NextLevel" type="RichTextLabel" parent="UI/WinDialog/VBoxContainer/Control"]
+margin_top = 4.0
+margin_right = 600.0
+margin_bottom = 29.0
+rect_min_size = Vector2( 0, 25 )
+rect_scale = Vector2( 0.5, 0.5 )
+size_flags_horizontal = 3
+custom_fonts/normal_font = SubResource( 6 )
+custom_colors/default_color = Color( 0, 0, 0, 1 )
+bbcode_enabled = true
+bbcode_text = "[center]PRESS ENTER TO CONTINUE[/center]"
+text = "PRESS ENTER TO CONTINUE"
+script = SubResource( 7 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Tween" type="Tween" parent="UI/WinDialog/VBoxContainer/Control/NextLevel"]
+repeat = true
+playback/repeat = true

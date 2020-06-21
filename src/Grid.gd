@@ -101,7 +101,6 @@ func nodes_at_distance(coords, n):
     var nodes = []
     for dc in range(-n, n + 1):
         for dr in [n - abs(dc), -(n - abs(dc))]:
-            var dr0 = n - abs(dc)
             var cell = get_cell(coords + Vector2(dc, dr))
             if cell != null and \
                cell is CNode:
@@ -118,7 +117,7 @@ func create_edge(n0, n1):
     else:
         var edge = Edge_scene.instance()
         edge.set_nodes(n0, n1)
-        edge.set_stops(Global.grid_coords_to_positions(path, true))
+        edge.set_stops(Global.grid_coords_to_positions(path))
         for coord in path:
 #            if _grid[coord.x][coord.y] == null: # do not draw over nodes
                 _grid[coord.x][coord.y] = edge

@@ -1,5 +1,7 @@
 extends StaticBody2D
 
+signal subnet_assimilated
+
 class_name CNode
 
 var subnet_id
@@ -7,19 +9,31 @@ var grid_coords
 var subnet = []
 var edges = []
 
+onready var sprite = $AnimatedSprite
+onready var highlight = $Highlight
+
 func _ready():
+    highlight.set_visible(false)
     subnet.append(self)
 
 func set_grid_coords(coords):
     self.grid_coords = coords
-    self.position = Global.tile_dims * grid_coords
+    self.position = Global.grid_coord_to_position(grid_coords)
+
+func connected_to(other_node):
+    for e in edges:
+        if e.get_other_node(self) == other_node:
+            return true
+    return false
 
 func connect_neighbor(new_neighbor, edge):
     check_no_duplicate_edge(edge)
     edges.append(edge)
     new_neighbor.edges.append(edge)
-    if subnet != new_neighbor.subnet:
-        assimilate_subnet(new_neighbor.subnet)
+
+func maybe_assimilate_subnet(other_node):
+    if subnet != other_node.subnet:
+        assimilate_subnet(other_node.subnet)
     else:
         print("Selected node in same subnet!")
 
@@ -34,14 +48,26 @@ func check_no_duplicate_edge(edge):
 func assimilate_subnet(subnet_to_add):
     subnet += subnet_to_add.duplicate()
     for node in subnet:
-        node.set_subnet(subnet)
-    update_subnet_color()
+        if is_instance_valid(node):
+            node.set_subnet(subnet)
+    color_entire_subnet()
+    emit_signal("subnet_assimilated")
 
 func set_subnet(subnet):
     self.subnet = subnet
 
-func update_subnet_color():
-    var hash_str = str(subnet).sha1_text().substr(0, 6)
-    var hash_color = Color(hash_str)
+func get_subnet_color():
+    return Color(str(subnet).sha1_text().substr(0, 6))
+
+func color_entire_subnet():
+    var subnet_color = get_subnet_color()
     for node in subnet:
-        node.modulate = hash_color
+        if is_instance_valid(node):
+            node.sprite.modulate = subnet_color
+        
+func color_node_by_subnet():
+    sprite = get_subnet_color()
+    
+func set_highlight(now_highlight = true):
+    highlight.set_visible(now_highlight)
+
