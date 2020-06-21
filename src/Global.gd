@@ -9,6 +9,7 @@ var last_lvl = 2
 var connect_range = 80.0
 var max_partition_dist = 2 * connect_range - 20.0
 var subnet_connect_tries = 30
+var start_lives = 3
 
 var level_params = [
     {

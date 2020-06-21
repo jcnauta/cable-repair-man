@@ -28,18 +28,16 @@ animations = [ {
 } ]
 
 [sub_resource type="RectangleShape2D" id=2]
-extents = Vector2( 8, 7.5 )
+extents = Vector2( 8, 8 )
 
 [node name="CNode" type="StaticBody2D"]
 script = ExtResource( 2 )
 
 [node name="AnimatedSprite" type="AnimatedSprite" parent="."]
 frames = SubResource( 1 )
-offset = Vector2( 0, -0.5 )
 
 [node name="Highlight" type="AnimatedSprite" parent="."]
 frames = SubResource( 3 )
-offset = Vector2( 0, -0.5 )
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource( 2 )

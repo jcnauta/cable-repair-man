@@ -54,6 +54,7 @@ func place_node():
     var found_place = false
     for try in max_tries:
         coords = Vector2(1 + randi() % int(max_coords.x - 2), 1 + randi() % int(max_coords.y - 2))
+#        coords = Vector2(randi() % int(max_coords.x), randi() % int(max_coords.y))
         if can_place_node(coords):
             found_place = true
             break
@@ -123,7 +124,7 @@ func create_edge(n0, n1):
                 _grid[coord.x][coord.y] = edge
         return edge
 
-func bfs(coords0, coords1):
+func bfs(coords0, coords1, max_length = 10):
     var search_grid = create_grid()
     search_grid[coords0.x][coords0.y] = Vector2(0, 0)
     var queue = [coords0]
@@ -142,7 +143,6 @@ func bfs(coords0, coords1):
                         new_queue.append(new_c)
         queue = new_queue
     if search_grid[coords1.x][coords1.y] == null:
-        print("failed to find a path!")
         return null
     else:
         var path = [coords1]

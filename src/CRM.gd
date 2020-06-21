@@ -3,10 +3,13 @@ extends KinematicBody2D
 class_name CRM
 
 signal action_0
+signal no_more_lives
+signal lives_changed
 
+var lives
 var grid_coords
 var spawn_position
-var speed = 250.0
+var speed = 180.0
 var dead = false
 var two_near_nodes = []
 var move_angle = 0
@@ -23,6 +26,7 @@ func _ready():
 func _physics_process(delta):
     if not Global.game_running:
         sprite.play("idle")
+        footsteps.stop()
     if dead or not Global.game_running:
         return
     if Input.is_action_pressed("ui_left"):
@@ -95,6 +99,7 @@ func die():
     dead = true
     die_sound.play()
     sprite.play("die")
+    set_lives(lives - 1)
     sprite.connect("animation_finished", self, "anim_finished", [])
 
 func anim_finished():
@@ -105,17 +110,26 @@ func respawn():
     dead = false
     position = spawn_position
     sprite.play("idle")
+    footsteps.stop()
 
 func reset():
     for con in get_signal_connection_list('action_0'):
         con.source.disconnect('action_0', con.target, con.method)
+    lives = Global.start_lives
     dead = false
     two_near_nodes = []
     grid_coords = null
     spawn_position = null
     sprite.play("idle")
+    footsteps.stop()
 
 func update_animation_speed():
     for anim in sprite.frames.get_animation_names():
         sprite.frames.set_animation_speed(anim, floor(speed / 10.0))
-        
+
+func set_lives(new_lives):
+    lives = new_lives
+    emit_signal("lives_changed")
+    if lives < 0:
+        print("lives: " + str(lives))
+        emit_signal("no_more_lives")

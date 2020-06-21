@@ -24,3 +24,5 @@ stream = ExtResource( 5 )
 
 [node name="Warning2" type="AudioStreamPlayer" parent="."]
 stream = ExtResource( 3 )
+
+[node name="EdgeElements" type="Node2D" parent="."]

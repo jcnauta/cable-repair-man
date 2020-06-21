@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=2]
+[gd_scene load_steps=28 format=2]
 
 [ext_resource path="res://CRM.tscn" type="PackedScene" id=1]
 [ext_resource path="res://src/Network.gd" type="Script" id=2]
@@ -11,6 +11,11 @@
 [ext_resource path="res://Countdown.gd" type="Script" id=9]
 [ext_resource path="res://sounds/place_cable.ogg" type="AudioStream" id=10]
 [ext_resource path="res://images/spawn.png" type="Texture" id=11]
+[ext_resource path="res://sounds/ready.ogg" type="AudioStream" id=12]
+[ext_resource path="res://sounds/theme.ogg" type="AudioStream" id=13]
+[ext_resource path="res://sounds/game_complete.ogg" type="AudioStream" id=14]
+[ext_resource path="res://sounds/level_complete.ogg" type="AudioStream" id=15]
+[ext_resource path="res://sounds/game_over.ogg" type="AudioStream" id=16]
 
 [sub_resource type="SegmentShape2D" id=1]
 b = Vector2( 480, 0 )
@@ -37,25 +42,46 @@ font_data = ExtResource( 5 )
 script/source = "extends Control
 
 signal next_level
+signal redo_level
 
+onready var title = $VBoxContainer/LevelComplete
 onready var score_label = $VBoxContainer/ScoreReport
 onready var next_text = $VBoxContainer/Control/NextLevel
 
 var timer
+var level_complete = false
 
 func _ready():
     set_process_input(false)
 
-func show_final_score():
+func show_final_score(lvl_score):
+    level_complete = true
+    $game_complete.play()
     visible = true
+    title.bbcode_text = \"[center]Game Complete[/center]\"
     score_label.bbcode_text = \"[center]Total time: \" + (\"%.2f\" % Global.total_score) + \"[/center]\"
     next_text.bbcode_text = \"[center]Press ENTER to set a higher score![/center]\"
     accept_next(1.0)
 
 func show_level_score(score):
+    level_complete = true
+    $level_complete.play()
     visible = true
+    title.bbcode_text = \"[center]Level Complete[/center]\"
     score_label.bbcode_text = \"[center]Time: \" + (\"%.2f\" % score) + \"[/center]\"
     next_text.bbcode_text = \"[center]Press ENTER for level \" + str(Global.lvl_idx + 2) + \"[/center]\"
+    accept_next()
+    
+func show_game_over():
+    $game_over.play()
+    level_complete = false
+    visible = true
+    title.bbcode_text = \"[center]Game Over[/center]\"
+    if Global.crm.lives < 0:
+        score_label.bbcode_text = \"[center]No More Lives[/center]\"
+    else:
+        score_label.bbcode_text = \"[center]Cannot connect All[/center]\"
+    next_text.bbcode_text = \"[center]Press ENTER to restart[/center]\"
     accept_next()
 
 func accept_next(min_wait = 0.4):
@@ -66,14 +92,18 @@ func accept_next(min_wait = 0.4):
     timer.start()
     
 func accept_input(do_accept = true):
-    timer.disconnect(\"timeout\", self, \"accept_input\")
-    timer.queue_free()
-    self.set_process_input(true)
+    if timer != null and is_instance_valid(timer):
+        timer.disconnect(\"timeout\", self, \"accept_input\")
+        timer.queue_free()
+        self.set_process_input(true)
 
 func _input(event):
     if event.is_action_pressed(\"ui_accept\"):
         self.set_process_input(false)
-        emit_signal(\"next_level\")
+        if level_complete:
+            emit_signal(\"next_level\")
+        else:
+            emit_signal(\"redo_level\")
 "
 
 [sub_resource type="DynamicFont" id=5]
@@ -107,6 +137,9 @@ func _on_tween_completed(object, key):
     tween_methods.invert()
     _start_blink()
 "
+
+[sub_resource type="DynamicFont" id=11]
+font_data = ExtResource( 5 )
 
 [node name="Game" type="Node2D"]
 script = ExtResource( 6 )
@@ -187,6 +220,10 @@ script = ExtResource( 9 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="UI/Countdown"]
+stream = ExtResource( 12 )
+volume_db = -9.087
 
 [node name="WinDialog" type="Control" parent="UI"]
 visible = false
@@ -288,3 +325,30 @@ __meta__ = {
 [node name="Tween" type="Tween" parent="UI/WinDialog/VBoxContainer/Control/NextLevel"]
 repeat = true
 playback/repeat = true
+
+[node name="level_complete" type="AudioStreamPlayer" parent="UI/WinDialog"]
+stream = ExtResource( 15 )
+volume_db = -7.0
+
+[node name="game_complete" type="AudioStreamPlayer" parent="UI/WinDialog"]
+stream = ExtResource( 14 )
+volume_db = -7.0
+
+[node name="game_over" type="AudioStreamPlayer" parent="UI/WinDialog"]
+stream = ExtResource( 16 )
+volume_db = -7.0
+
+[node name="Lives" type="RichTextLabel" parent="UI"]
+margin_right = 40.0
+margin_bottom = 40.0
+rect_min_size = Vector2( 100, 20 )
+custom_fonts/normal_font = SubResource( 11 )
+bbcode_enabled = true
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="BgMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 13 )
+volume_db = -16.155
+autoplay = true

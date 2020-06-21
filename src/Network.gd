@@ -1,6 +1,7 @@
 extends Node2D
 
 signal single_network
+signal no_solutions
 
 var Grid = preload("res://src/Grid.gd")
 
@@ -19,6 +20,7 @@ func _ready():
 
 func _physics_process(delta):
     update_target_nodes()
+#    crm_create_edge()
 
 func connect_signals():
     crm.connect("action_0", self, "crm_create_edge")
@@ -31,22 +33,32 @@ func generate_nodes():
         if new_node != null:
             nodes.add_child(new_node)
 
-func is_fully_connected():
+func is_fully_connected(check_paths = false):
     var all_nodes = nodes.get_children()
-    var grow_net = [all_nodes.pop_back()]
+    var grow_net = []
+    var first_node = all_nodes.back()
+    for first in first_node.subnet:
+        all_nodes.erase(first)
+        grow_net.append(first)
     while len(all_nodes) > 0:
         var node_to_add = null
         for n in all_nodes:
             for g in grow_net:
                 if n.position.distance_to(g.position) < Global.max_partition_dist:
-                    node_to_add = n
-                    break
+                    var path =  grid.bfs(n.grid_coords, g.grid_coords)
+                    if path != null:
+                        node_to_add = n
+                        break
+                    else:
+                        pass
+#                        print("no path from " + str(n.grid_coords) + " to " + str(g.grid_coords))
             if node_to_add != null:
                 break
         if node_to_add == null:
             return false
-        all_nodes.erase(node_to_add)
-        grow_net.append(node_to_add)
+        for n in node_to_add.subnet:
+            all_nodes.erase(n)
+            grow_net.append(n)
     return true
 
 func create_node_connections(subnets = 1):
@@ -62,6 +74,8 @@ func create_node_connections(subnets = 1):
 func crm_create_edge():
     if two_target_nodes[0] != null and two_target_nodes[1] != null:
         connect_two_nodes(two_target_nodes[0], two_target_nodes[1], "harmless")
+        if not is_fully_connected(true):
+            emit_signal("no_solutions")
     
 func connect_two_nodes(node0, node1, init_edge_state = "danger"):
     if node0.connected_to(node1):
@@ -138,7 +152,6 @@ func check_single_network():  # win if there is only a single subnet
         else:
             if the_subnet != n.subnet:
                 return false
-    
     emit_signal("single_network")
     return true
 

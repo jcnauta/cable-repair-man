@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=2]
+[gd_scene load_steps=16 format=2]
 
 [ext_resource path="res://images/cable_sheet.png" type="Texture" id=1]
 
@@ -57,9 +57,14 @@ animations = [ {
 "name": "warning",
 "speed": 5.0
 }, {
-"frames": [ SubResource( 9 ), SubResource( 10 ), SubResource( 11 ), SubResource( 12 ), SubResource( 13 ), SubResource( 14 ) ],
+"frames": [ SubResource( 9 ), SubResource( 10 ), SubResource( 11 ) ],
 "loop": true,
-"name": "danger",
+"name": "danger_lr",
+"speed": 5.0
+}, {
+"frames": [ SubResource( 12 ), SubResource( 13 ), SubResource( 14 ) ],
+"loop": true,
+"name": "danger_ru",
 "speed": 5.0
 }, {
 "frames": [ SubResource( 1 ), SubResource( 2 ) ],
@@ -68,6 +73,78 @@ animations = [ {
 "speed": 5.0
 } ]
 
+[sub_resource type="GDScript" id=15]
+script/source = "extends AnimatedSprite
+
+var current_state
+var orientation
+var harmless_frame
+var warning_frame
+var orient_rotations = {
+    \"lu\": -0.5 * PI,
+    \"lr\": 0,
+    \"ld\": PI,
+    \"ru\": 0,
+    \"rd\": 0.5 * PI,
+    \"ud\": 0.5 * PI
+}
+
+var state # \"harmless\", \"warning\", \"danger\"
+
+func same_vectors(v12, v34):
+    if (v12[0] == v34[0] and v12[1] == v34[1]) or \\
+       (v12[0] == v34[1] and v12[1] == v34[0]):
+        return true
+    return false
+
+func fix_animation():
+    match current_state:
+        \"harmless\":
+            set_animation(\"harmless\")
+            stop()
+            set_frame(harmless_frame)
+        \"warning\":
+            set_animation(\"warning\")
+            stop()
+            set_frame(warning_frame)
+        \"danger\":
+            if orientation == \"lr\" or orientation == \"ud\":
+                play(\"danger_lr\")
+            else:
+                play(\"danger_ru\")
+
+func set_orientation(back, forw):
+    var left = Vector2(-1, 0)
+    var right = Vector2(1, 0)
+    var up = Vector2(0, -1)
+    var down = Vector2(0, 1)
+    var pair_to_orientation = { \\
+        [left, up]: \"lu\", \\
+        [left, right]: \"lr\", \\
+        [left, down]: \"ld\", \\
+        [right, up]: \"ru\", \\
+        [right, down]: \"rd\", \\
+        [up, down]: \"ud\" \\
+    }
+    for pair in pair_to_orientation.keys():
+        if same_vectors(pair, [back, forw]):
+            orientation = pair_to_orientation[pair]
+            rotation = orient_rotations[orientation]
+            if orientation == \"lr\" or orientation == \"ud\":
+                harmless_frame = 0
+                warning_frame = 0
+            else:
+                harmless_frame = 1
+                warning_frame = 1
+            return
+    print(\"error setting orientation, no matching pair.\")
+
+func set_state(new_state):
+    current_state = new_state
+    fix_animation()
+"
+
 [node name="EdgeElement" type="AnimatedSprite"]
 frames = SubResource( 4 )
-animation = "danger"
+animation = "danger_ru"
+script = SubResource( 15 )
