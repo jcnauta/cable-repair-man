@@ -1,5 +1,7 @@
 extends KinematicBody2D
 
+class_name CRM
+
 signal action_0
 
 var grid_coords
@@ -7,42 +9,62 @@ var spawn_position
 var speed = 250.0
 var dead = false
 var two_near_nodes = []
+var move_angle = 0
 var dummy_move = Vector2(0.0, 0.0) # to trigger collision
 
 onready var sprite = $Sprite
+onready var footsteps = $Footsteps
+onready var die_sound = $Die
+
 
 func _ready():
     Global.crm = self
 
 func _physics_process(delta):
+    if not Global.game_running:
+        sprite.play("idle")
     if dead or not Global.game_running:
         return
     if Input.is_action_pressed("ui_left"):
+        sprite.scale.x = 1
         if Input.is_action_pressed("ui_up"):
-            rotation = -0.25 * PI
+            move_angle = -0.25 * PI
+            sprite.play("run_nw")
         elif Input.is_action_pressed("ui_down"):
-            rotation = -0.75 * PI
+            sprite.play("run_sw")
+            move_angle = -0.75 * PI
         else:
-            rotation = -0.5 * PI
+            sprite.play("run_w")
+            move_angle = -0.5 * PI
     if Input.is_action_pressed("ui_right"):
+        sprite.scale.x = -1
         if Input.is_action_pressed("ui_up"):
-            rotation = 0.25 * PI
+            sprite.play("run_nw")
+            move_angle = 0.25 * PI
         elif Input.is_action_pressed("ui_down"):
-            rotation = 0.75 * PI
+            sprite.play("run_sw")
+            move_angle = 0.75 * PI
         else:
-            rotation = 0.5 * PI
+            sprite.play("run_w")
+            move_angle = 0.5 * PI
     if not (Input.is_action_pressed("ui_left") or \
             Input.is_action_pressed("ui_right")):
         if Input.is_action_pressed("ui_up"):
-            rotation = 0.0
+            sprite.play("run_n")
+            move_angle = 0.0
         if Input.is_action_pressed("ui_down"):
-            rotation = PI
+            sprite.play("run_s")
+            move_angle = PI
     if Input.is_action_pressed("ui_left") or \
        Input.is_action_pressed("ui_up") or \
        Input.is_action_pressed("ui_down") or \
        Input.is_action_pressed("ui_right"):
         move_and_slide_diagonal_fix()
+        if not footsteps.playing:
+            footsteps.play()
     else:
+        footsteps.stop()
+        sprite.play("idle")
         move_and_slide(dummy_move)
     if Input.is_action_just_pressed("action_0"):
         emit_signal("action_0")
@@ -53,7 +75,7 @@ func set_grid_coords(coords):
     spawn_position = self.position
 
 func move_and_slide_diagonal_fix():
-    var move_dir = Vector2(0, -1).rotated(rotation)
+    var move_dir = Vector2(0, -1).rotated(move_angle)
     move_and_slide(speed * move_dir)
 
 func set_two_nearest_nodes(nodes):
@@ -65,22 +87,24 @@ func set_two_nearest_nodes(nodes):
             pass
 
 func _enter_edge(body):
-    if body == self:
+    if body == self and Global.game_running:
+        print("enter edge!")
         die()
 
 func die():
     dead = true
+    die_sound.play()
     sprite.play("die")
     sprite.connect("animation_finished", self, "anim_finished", [])
 
 func anim_finished():
     if sprite.animation == "die":
         respawn()
-        sprite.play("default")
 
 func respawn():
     dead = false
     position = spawn_position
+    sprite.play("idle")
 
 func reset():
     for con in get_signal_connection_list('action_0'):
@@ -89,4 +113,9 @@ func reset():
     two_near_nodes = []
     grid_coords = null
     spawn_position = null
-    sprite.play("default")
+    sprite.play("idle")
+
+func update_animation_speed():
+    for anim in sprite.frames.get_animation_names():
+        sprite.frames.set_animation_speed(anim, floor(speed / 10.0))
+        

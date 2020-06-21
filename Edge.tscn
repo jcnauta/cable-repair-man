@@ -1,6 +1,10 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://src/Edge.gd" type="Script" id=1]
+[ext_resource path="res://sounds/zap_on.ogg" type="AudioStream" id=2]
+[ext_resource path="res://sounds/warning3.ogg" type="AudioStream" id=3]
+[ext_resource path="res://sounds/warning1.ogg" type="AudioStream" id=4]
+[ext_resource path="res://sounds/warning2.ogg" type="AudioStream" id=5]
 
 [node name="Edge" type="Node2D"]
 script = ExtResource( 1 )
@@ -8,3 +12,15 @@ script = ExtResource( 1 )
 [node name="CollisionArea" type="Area2D" parent="."]
 
 [node name="Timer" type="Timer" parent="."]
+
+[node name="Zap" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 2 )
+
+[node name="Warning0" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 4 )
+
+[node name="Warning1" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 5 )
+
+[node name="Warning2" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 3 )

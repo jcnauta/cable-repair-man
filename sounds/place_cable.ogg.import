@@ -1,0 +1,15 @@
+[remap]
+
+importer="ogg_vorbis"
+type="AudioStreamOGGVorbis"
+path="res://.import/place_cable.ogg-10921a9d4c704d90f37c9be047449244.oggstr"
+
+[deps]
+
+source_file="res://sounds/place_cable.ogg"
+dest_files=[ "res://.import/place_cable.ogg-10921a9d4c704d90f37c9be047449244.oggstr" ]
+
+[params]
+
+loop=false
+loop_offset=0
