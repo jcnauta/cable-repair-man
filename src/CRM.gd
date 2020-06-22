@@ -90,8 +90,11 @@ func set_two_nearest_nodes(nodes):
             pass
 
 func _enter_edge(body):
-    if body == self and Global.game_running:
-        print("enter edge!")
+    if body == self:
+        maybe_die()
+
+func maybe_die():
+    if Global.game_running and not dead:
         die()
 
 func die():
@@ -115,7 +118,7 @@ func respawn():
 func reset():
 #    for con in get_signal_connection_list('action_0'):
 #        con.source.disconnect('action_0', con.target, con.method)
-    lives = Global.start_lives
+    set_lives(Global.start_lives)
     dead = false
     two_near_nodes = []
     grid_coords = null
@@ -123,7 +126,6 @@ func reset():
     sprite.play("idle")
     footsteps.stop()
     move_angle = 0
-    
 
 func update_animation_speed():
     for anim in sprite.frames.get_animation_names():

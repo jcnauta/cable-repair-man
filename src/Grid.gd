@@ -55,6 +55,7 @@ func place_node():
     for try in max_tries:
         coords = Vector2(1 + randi() % int(max_coords.x - 2), 1 + randi() % int(max_coords.y - 2))
 #        coords = Vector2(randi() % int(max_coords.x), randi() % int(max_coords.y))
+#        coords = Vector2(randi() % 10, randi() % 5)
         if can_place_node(coords):
             found_place = true
             break
@@ -82,12 +83,12 @@ func can_place_node(coords):
     else:
         return false
 
-func get_n_nearest(coords, max_nodes = 6, max_dist = 10):
+func get_n_nearest(coords, max_nodes = 6, max_dist = 12):
     var nodes = []
     for dist in range(1, max_dist):
         var new_nodes = nodes_at_distance(coords, dist)
         if len(nodes) + len(new_nodes) <= max_nodes:
-            nodes += new_nodes
+            nodes += new_nodes            
         else:
             while len(nodes) < max_nodes:
                 var rand_idx = randi() % len(new_nodes)
@@ -96,6 +97,10 @@ func get_n_nearest(coords, max_nodes = 6, max_dist = 10):
                 nodes.append(new_node)
         if len(nodes) == max_nodes:
             break
+#    if len(nodes) > 0:
+#        print(str(len(nodes)) + " nnodes from " + str(coords))
+#    for n in nodes:
+#        print(n.grid_coords)
     return nodes
     
 func nodes_at_distance(coords, n):
@@ -103,11 +108,14 @@ func nodes_at_distance(coords, n):
     for dc in range(-n, n + 1):
         for dr in [n - abs(dc), -(n - abs(dc))]:
             var cell = get_cell(coords + Vector2(dc, dr))
-            if cell != null and \
-               cell is CNode:
+            if cell != null and cell is CNode:
                 nodes.append(cell)
             if dr == 0: ## column has only candidate
                 break
+#    if len(nodes) > 0:
+#        print("nodes at distance " + str(n) + " from " + str(coords) + ":")
+#        for n in nodes:
+#            print(n.grid_coords)
     nodes.shuffle()
     return nodes
 
@@ -120,7 +128,7 @@ func create_edge(n0, n1):
         edge.set_nodes(n0, n1)
         edge.set_stops(Global.grid_coords_to_positions(path))
         for coord in path:
-#            if _grid[coord.x][coord.y] == null: # do not draw over nodes
+            if _grid[coord.x][coord.y] == null: # do not draw over nodes
                 _grid[coord.x][coord.y] = edge
         return edge
 

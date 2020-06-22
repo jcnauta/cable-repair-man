@@ -23,11 +23,17 @@ _global_script_classes=[ {
 "class": "Grid",
 "language": "GDScript",
 "path": "res://src/Grid.gd"
+}, {
+"base": "RichTextLabel",
+"class": "MyTextLabel",
+"language": "GDScript",
+"path": "res://src/MyTextLabel.gd"
 } ]
 _global_script_class_icons={
 "CNode": "",
 "CRM": "",
-"Grid": ""
+"Grid": "",
+"MyTextLabel": ""
 }
 
 [application]

@@ -77,14 +77,15 @@ func connect_enter_body(body):
 func _physics_process(delta):
     if current_state == "danger" or current_state == "warning":
         update_sound_volume()
-        
+
+# update_volume depending on distance to player
 func update_sound_volume():
     var min_dist = INF
     for s in stops:
         var dist = s.distance_squared_to(Global.crm.position)
         if dist < min_dist:
             min_dist = dist
-    zap_sound.volume_db = 5 - 0.0025 * min_dist
+    zap_sound.volume_db = 5 - 0.003 * min_dist
     for warning_sound in warning_sounds:
         warning_sound.volume_db = 1 - 0.0025 * min_dist
 #
@@ -132,7 +133,7 @@ func set_state(new_state, persistent = true):
             set_collision_active(true)
             if Global.crm != null:
                 if collision_area.overlaps_body(Global.crm):
-                    Global.crm.die()
+                    Global.crm.maybe_die()
     if not persistent:
         timer.start()
     update()

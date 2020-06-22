@@ -19,7 +19,7 @@ var shadow_edge
 
 func _ready():
     randomize()
-    restart()
+#    restart()
 
 func restart():
     var generate_level_tries = 0
@@ -77,11 +77,13 @@ func create_node_connections(subnets = 1):
     var all_nodes = nodes.get_children()
     if len(all_nodes) <= 1:
         return
+    var connections_succeeded = 0
     for i in Global.level_params[Global.level_idx]["max_init_connections"]:
         var success = connect_two_subnets(all_nodes)
-        if not success:
-            pass
-
+        if success:
+            connections_succeeded += 1
+    print("subnet connections succeeded: " + str(connections_succeeded) + "/" + \
+          str(Global.level_params[Global.level_idx]["max_init_connections"]))
 func crm_create_edge():
     if two_target_nodes[0] != null and two_target_nodes[1] != null:
         connect_two_nodes(two_target_nodes[0], two_target_nodes[1], "warning")
@@ -119,6 +121,15 @@ func connect_two_subnets(all_nodes):
         for node in all_nodes:
             if not node.subnet in subnets:
                 subnets.append(node.subnet)
+        var subnets_by_size = []
+        for subnet in subnets:
+            subnets_by_size.append([len(subnet), subnet])
+        subnets_by_size.sort_custom(Util, "sort_by_first")
+        subnets = Util.only_second_elements(subnets_by_size)
+        # subnets are now sorted
+        # pick smallest subnet
+#        var source_subnet = subnets[0]
+
         # pick random subnet
         var use_subnet = false
         var subnet_idx

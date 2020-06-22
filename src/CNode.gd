@@ -4,7 +4,6 @@ signal subnet_assimilated
 
 class_name CNode
 
-var subnet_id
 var grid_coords
 var subnet = []
 var edges = []

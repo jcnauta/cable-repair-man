@@ -5,13 +5,19 @@ onready var dialog = $UI/EndLevelDialog
 onready var level_timer = $UI/LevelTimer
 onready var countdown = $UI/Countdown
 onready var lives = $UI/Lives
+onready var menu = $UI/Menu
 
 func _ready():
-    restart()
+    menu.connect("play_game", self, "restart")
+    menu.show_intro()
+#    restart()
+#    dialog.show_score(13)
 
 func restart():
+    menu.visible = false
     dialog.visible = false
     Global.total_score = 0
+    Global.scores = []
     Global.level_idx = 0
     Global.crm.connect("lives_changed", self, "_lives_changed")
     Global.crm.set_lives(Global.start_lives)
@@ -24,7 +30,7 @@ func restart():
     countdown.start_countdown()
 
 func _lives_changed():
-    lives.set_lives(Global.crm.lives)
+    lives.update_lives()
     if Global.crm.lives < 0:
         _show_game_over()
 
@@ -41,6 +47,7 @@ func _show_dialog(_score):
 
 func _show_game_over():
     Global.game_running = false
+    print("game not running!")
     dialog.show_game_over()
 
 func next_level():
@@ -57,3 +64,4 @@ func next_level():
 func start_level():
     level_timer.start_time()
     Global.game_running = true
+    print("starting game!, running true")
