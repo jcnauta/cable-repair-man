@@ -15,5 +15,4 @@ func _init():
     add_color_override("default_color", Color.black)
 
 func set_font_size(new_size):
-    print("setget triggered")
     my_font.size = new_size

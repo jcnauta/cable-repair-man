@@ -40,7 +40,7 @@ func connect_signals():
         n.connect("subnet_assimilated", self, "check_single_network")
 
 func generate_nodes():
-    for max_nnodes in Global.level_params[Global.level_idx]["max_nnodes"]:
+    for max_nnodes in Global.level_params[Global.secret_level_idx]["max_nnodes"]:
         var new_node = grid.place_node()
         if new_node != null:
             nodes.add_child(new_node)
@@ -78,12 +78,10 @@ func create_node_connections(subnets = 1):
     if len(all_nodes) <= 1:
         return
     var connections_succeeded = 0
-    for i in Global.level_params[Global.level_idx]["max_init_connections"]:
+    for i in Global.level_params[Global.secret_level_idx]["max_init_connections"]:
         var success = connect_two_subnets(all_nodes)
         if success:
             connections_succeeded += 1
-    print("subnet connections succeeded: " + str(connections_succeeded) + "/" + \
-          str(Global.level_params[Global.level_idx]["max_init_connections"]))
 func crm_create_edge():
     if two_target_nodes[0] != null and two_target_nodes[1] != null:
         connect_two_nodes(two_target_nodes[0], two_target_nodes[1], "warning")

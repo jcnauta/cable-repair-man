@@ -12,7 +12,8 @@ var choice_children
 func set_choices(names):
     choice_children = choices.get_children()
     for c in choice_children:
-        c.queue_free()
+        c.free()
+    choice_children = []
     choice_list.clear()
     for name in names:
         choice_list.append(name)
@@ -20,7 +21,6 @@ func set_choices(names):
         choices.add_child(choice_label)
         choice_label.rect_min_size = Vector2(100, 25)
         choice_label.bbcode_enabled = true
-#        choice_label.get("custom_fonts/normal_font")
         var new_font = DynamicFont.new()
         new_font.font_data = load("res://fonts/Minecraftia-Regular.ttf")
         choice_label.add_font_override("normal_font", new_font)
@@ -57,5 +57,9 @@ func update_highlighting():
         else:
             label.add_color_override("default_color", Color.black)
         
+func show_highscore(level, time):
+    $Highscore.set_font_size(8)
+    $Highscore.set_bbcode("[center][color=grey]Highscore:[/color] [color=red]" + str(level) + " levels[/color] [color=grey]in[/color] [color=red]" + ("%.2f" % time) + " seconds.[/color][/center]")
+
 func get_current_choice():
     return choice_list[choice_idx]

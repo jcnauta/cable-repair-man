@@ -37,6 +37,7 @@ script = ExtResource( 2 )
 [node name="Nodes" type="Node2D" parent="World/Network"]
 
 [node name="Spawnpoint" type="Sprite" parent="World/Network"]
+position = Vector2( -22.7518, -20.6054 )
 texture = ExtResource( 11 )
 offset = Vector2( 0, 4 )
 
@@ -44,6 +45,7 @@ offset = Vector2( 0, 4 )
 stream = ExtResource( 10 )
 
 [node name="CRM" parent="World" instance=ExtResource( 1 )]
+position = Vector2( -22.1078, -20.82 )
 
 [node name="ScreenEdges" type="StaticBody2D" parent="World"]
 
@@ -65,4 +67,5 @@ margin_bottom = 288.0
 
 [node name="BgMusic" type="AudioStreamPlayer" parent="."]
 stream = ExtResource( 13 )
-volume_db = -16.155
+volume_db = -10.0
+autoplay = true

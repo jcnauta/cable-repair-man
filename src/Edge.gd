@@ -115,7 +115,7 @@ func set_state(new_state, persistent = true):
         "harmless":
             zap_sound.stop()
             if not persistent:
-                timer.wait_time = (1.0 + randf()) * Global.level_params[Global.level_idx]["harmless_duration"]
+                timer.wait_time = (1.0 + randf()) * Global.level_params[Global.secret_level_idx]["harmless_duration"]
                 timer.connect("timeout", self, "set_state", ["warning", false])
             set_collision_active(false)
         "warning":
@@ -128,7 +128,7 @@ func set_state(new_state, persistent = true):
         "danger":
             zap_sound.play()
             if not persistent:
-                timer.wait_time = Global.level_params[Global.level_idx]["zap_duration"] #1.0 #2.0 + 4.0 * randf()
+                timer.wait_time = Global.level_params[Global.secret_level_idx]["zap_duration"] #1.0 #2.0 + 4.0 * randf()
                 timer.connect("timeout", self, "set_state", ["harmless", false])
             set_collision_active(true)
             if Global.crm != null:

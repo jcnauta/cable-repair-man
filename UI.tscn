@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=2]
+[gd_scene load_steps=29 format=2]
 
 [ext_resource path="res://fonts/chary___.ttf" type="DynamicFontData" id=1]
 [ext_resource path="res://fonts/retro_computer_personal_use.ttf" type="DynamicFontData" id=2]
@@ -12,8 +12,9 @@
 [ext_resource path="res://src/Menu.gd" type="Script" id=10]
 [ext_resource path="res://fonts/Minecraftia-Regular.ttf" type="DynamicFontData" id=11]
 [ext_resource path="res://src/TitleChoices.gd" type="Script" id=12]
-[ext_resource path="res://sounds/place_cable.ogg" type="AudioStream" id=13]
+[ext_resource path="res://sounds/countdown_number.ogg" type="AudioStream" id=13]
 [ext_resource path="res://src/MyTextLabel.gd" type="Script" id=14]
+[ext_resource path="res://sounds/menu_click.ogg" type="AudioStream" id=15]
 
 [sub_resource type="DynamicFont" id=1]
 font_data = ExtResource( 1 )
@@ -22,9 +23,8 @@ font_data = ExtResource( 1 )
 size = 64
 font_data = ExtResource( 1 )
 
-[sub_resource type="DynamicFont" id=3]
-size = 14
-use_mipmaps = true
+[sub_resource type="DynamicFont" id=12]
+size = 28
 font_data = ExtResource( 2 )
 
 [sub_resource type="DynamicFont" id=4]
@@ -63,6 +63,10 @@ func _on_tween_completed(object, key):
     _start_blink()
 "
 
+[sub_resource type="DynamicFont" id=13]
+size = 28
+font_data = ExtResource( 2 )
+
 [sub_resource type="GDScript" id=6]
 script/source = "extends Control
 
@@ -81,69 +85,78 @@ onready var bg = $Background
 onready var test = $TextContainer/Control
 
 var timer
-var level_complete = false
+var level_complete = true
 
 func _ready():
     set_process_input(false)
 
-func show_score(score_param):
+func show_score(score_param, game_over_reason = null):
     level_score_text.clear()
     level_score_text.push_align(RichTextLabel.ALIGN_RIGHT)
     level_score_text.set_font_size(8)
-    if Global.crm.lives <= 0:
+    level_score.clear()
+    level_score.push_align(RichTextLabel.ALIGN_RIGHT)
+    level_score.set_font_size(8)
+    if game_over_reason == null:
+        level_complete = true
+        subtitle.rect_min_size = Vector2(300, 0)
+        subtitle.rect_size = Vector2(300, 0)
+        $level_complete.play()
+        title.set_bbcode(\"Level \" + str(Global.level_idx + 1) + \" Complete\")
+        # Add new score
+        var new_score_obj = {
+            \"level\": Global.level_idx + 1,
+            \"time\": Global.time_per_level - score_param
+        }
+        level_score_text.append_bbcode(\"Time:\\n\")
+        level_score.append_bbcode((\"%.2f\" % new_score_obj.time) + \"\\n\")
+        Global.scores.append(new_score_obj)
+    else:
+        level_complete = false
         $game_over.play()
         title.set_bbcode(\"Game Over\")
         next_text.bbcode_text = \"[center]Press ENTER to play again![/center]\"
         level_score_text.append_bbcode(\"[color=red]Level Reached:[/color]\\n\")
-    else:
-        $level_complete.play()
-        title.set_bbcode(\"Level \" + str(Global.level_idx + 1) + \" Complete\")
-    level_score_text.append_bbcode(\"Time Left:\\nTotal Time Left:\")
-#        next_text.bbcode_text = \"[center]Press ENTER to continue[/center]\"
-    # Add new score
-    var new_score_obj = {
-        \"level\": Global.level_idx + 1,
-        \"time\": score_param
-    }
-    Global.scores.append(new_score_obj)
+        level_score.append_bbcode(\"[color=red]\" + str(Global.level_idx + 1) + \"[/color]\\n\")
     # Show full score list
     visible = true
-    level_complete = true
     for c in all_scores.get_children():
         c.queue_free()
-    var score_line_height
+    var score_line_height = 0
     var total_time = 0.0
+    if len(Global.scores) == 0:
+        var score_label = MyTextLabel.new()
+        score_label.set_font_size(8)
+        all_scores.add_child(score_label)
+        score_label.append_bbcode(\"[color=red]No Levels Completed[/color]\")
+        score_line_height = score_label.get_font(\"normal_font\").get_height() + 2
+        score_label.rect_min_size.y = score_line_height
     for score_obj in Global.scores:
         var score_label = MyTextLabel.new()
         score_label.set_font_size(8)
         all_scores.add_child(score_label)
-        total_time += score_obj.time
         score_label.append_bbcode(\"Level \" + str(score_obj.level) + \":     \" + (\"%.2f\" % score_obj.time))
         score_line_height = score_label.get_font(\"normal_font\").get_height() + 2
         score_label.rect_min_size.y = score_line_height
+        total_time += score_obj.time
     # Show level score
-    level_score.clear()
-    level_score.push_align(RichTextLabel.ALIGN_RIGHT)
-    if Global.crm.lives <= 0:
-        level_score.append_bbcode(\"[color=red]\" + str(Global.level_idx + 1) + \"[/color]\\n\")
-    level_score.append_bbcode((\"%.2f\" % new_score_obj.time) + \"\\n\")
+    level_score_text.append_bbcode(\"Total Time:\")
     level_score.append_bbcode((\"%.2f\" % total_time))
-    level_score.set_font_size(8)
-    
+    Global.save_highscore()
     # Layout everything
-    var dialogue_dims = Vector2(300, min(Global.screen_dims.y - 100, \\
+    var dialogue_dims = Vector2(300, min(Global.screen_dims.y - 80, \\
                                 200 + 2 * score_line_height * len(Global.scores)))
-    var inset_margin = 15
-    var dialogue_inset_dims = dialogue_dims - inset_margin * Vector2(2, 2)
+    var inset_margins = Vector2(15, 10)
+    var dialogue_inset_dims = dialogue_dims - 2 * inset_margins
     rect_position = 0.5 * Vector2((Global.screen_dims.x - dialogue_dims.x), \\
                                   (Global.screen_dims.y - dialogue_dims.y))
     rect_min_size = dialogue_dims
     bg.rect_min_size = dialogue_dims
     bg.rect_position = Vector2(0, 0) #  reset bg position
     next_text.rect_min_size = Vector2(dialogue_inset_dims.x, \\
-                                      next_text.get_font(\"normal_font\").get_height() + 2)
-    text_container.margin_left = inset_margin
-    text_container.margin_top = inset_margin
+                                      next_text.get_font(\"normal_font\").get_height() + 20)
+    text_container.margin_left = inset_margins.x
+    text_container.margin_top = inset_margins.y
     scroll_scores.rect_min_size = text_container.rect_min_size * Vector2(0.4, 1)
     var level_text_width = 100
     var level_score_width = 50
@@ -152,35 +165,23 @@ func show_score(score_param):
     level_score.rect_min_size.x = level_score_width
     level_score.rect_size.x = level_score_width
     test.rect_min_size = Vector2(40, 40)
-#    test.rect_size = Vector2(40, 40)
-#    title.
-#    title.rect_position.x = 50
-#    var game_complete
-#    if Global.level_idx == len(Global.level_params) - 1:
-#        game_complete = true
-#    if game_complete:
-#        $game_complete.play()
-#        title.bbcode_text = \"[center]Game Complete[/center]\"
-#        score_label.bbcode_text = \"[center]Total time: \" + (\"%.2f\" % Global.total_score) + \"[/center]\"
-#        next_text.bbcode_text = \"[center]Press ENTER to set a higher score![/center]\"
-#    else:
-#        $level_complete.play()
-#        title.bbcode_text = \"[center]Level \" + str(Global.level_idx) + \" Complete[/center]\"
-#        score_label.bbcode_text = \"[center]Time: \" + (\"%.2f\" % level_score) + \"[/center]\"
-#        next_text.bbcode_text = \"[center]Press ENTER for level \" + str(Global.level_idx + 2) + \"[/center]\"
     accept_next(0.5)
 
-func show_game_over():
+func show_game_over(reason): # \"no_lives\", \"no_connect\", \"time_up\"
     visible = true
-    $game_over.play()
     level_complete = false
-    title.bbcode_text = \"[center]Game Over[/center]\"
-    if Global.crm.lives < 0:
-        subtitle.bbcode_text = \"[center]No More Lives[/center]\"
-    else:
-        subtitle.bbcode_text = \"[center]Cannot connect All[/center]\"
-    next_text.bbcode_text = \"[center]Press ENTER to restart[/center]\"
-    accept_next()
+    show_score(0, reason)
+    subtitle.rect_min_size = Vector2(300, 30)
+    if reason == \"no_lives\":
+        subtitle.bbcode_text = \"No More Lives\"
+#        title.append_bbcode(\": No More Lives\")
+    elif reason == \"no_connect\":
+        subtitle.bbcode_text = \"Cannot Connect All\"
+    elif reason == \"time_up\":
+        subtitle.bbcode_text = \"Time Up!\"
+#        title.append_bbcode(\": Cannot Connect All\")
+#    next_text.bbcode_text = \"[center]Press ENTER to restart[/center]\"
+#    accept_next()
 
 # Protect user from themselves, throwing away an awesome highscore.
 func accept_next(min_wait = 0.4):
@@ -190,24 +191,30 @@ func accept_next(min_wait = 0.4):
     timer.connect(\"timeout\", self, \"accept_input\")
     timer.start()
     
-func accept_input(do_accept = true):
+func accept_input(_do_accept = true):
     if timer != null and is_instance_valid(timer):
         timer.disconnect(\"timeout\", self, \"accept_input\")
         timer.queue_free()
-        self.set_process_input(true)
+    self.set_process_input(true)
 
 func _input(event):
     if event.is_action_pressed(\"ui_accept\"):
-        self.set_process_input(false)
+        visible = false
+        set_process_input(false)
         if level_complete:
             emit_signal(\"next_level\")
         else:
             emit_signal(\"restart\")
 "
 
+[sub_resource type="DynamicFont" id=3]
+size = 14
+use_mipmaps = true
+font_data = ExtResource( 2 )
+
 [sub_resource type="DynamicFont" id=11]
 size = 14
-font_data = ExtResource( 11 )
+font_data = ExtResource( 2 )
 
 [sub_resource type="DynamicFont" id=8]
 font_data = ExtResource( 1 )
@@ -223,8 +230,9 @@ func update_lives():
 [node name="UI" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+margin_left = 0.698303
 margin_top = 0.463287
-margin_right = 480.0
+margin_right = 480.698
 margin_bottom = 270.463
 __meta__ = {
 "_edit_use_anchors_": false
@@ -245,6 +253,10 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="LevelTimer"]
+stream = ExtResource( 13 )
+volume_db = -20.0
+
 [node name="Countdown" type="RichTextLabel" parent="."]
 anchor_left = 0.5
 anchor_top = 0.5
@@ -257,8 +269,6 @@ margin_bottom = 65.0002
 rect_min_size = Vector2( 480, 100 )
 custom_fonts/normal_font = SubResource( 2 )
 bbcode_enabled = true
-bbcode_text = "[center]test[/center]"
-text = "test"
 script = ExtResource( 3 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -269,7 +279,6 @@ stream = ExtResource( 6 )
 volume_db = -9.087
 
 [node name="Menu" type="Control" parent="."]
-visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource( 10 )
@@ -314,7 +323,7 @@ margin_bottom = 40.0
 rect_min_size = Vector2( 200, 40 )
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_fonts/normal_font = SubResource( 3 )
+custom_fonts/normal_font = SubResource( 12 )
 custom_colors/default_color = Color( 0, 0, 0, 1 )
 bbcode_enabled = true
 bbcode_text = "[center]Level Complete[/center]"
@@ -379,7 +388,7 @@ margin_bottom = 40.0
 rect_min_size = Vector2( 200, 40 )
 size_flags_horizontal = 3
 size_flags_vertical = 0
-custom_fonts/normal_font = SubResource( 3 )
+custom_fonts/normal_font = SubResource( 13 )
 custom_colors/default_color = Color( 0, 0, 0, 1 )
 bbcode_enabled = true
 bbcode_text = "[center]Level Complete[/center]"
@@ -389,14 +398,34 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Choices" type="VBoxContainer" parent="Menu/TitleChoices"]
+[node name="Spacer2" type="Control" parent="Menu/TitleChoices"]
 margin_top = 44.0
 margin_right = 360.0
-margin_bottom = 69.0
+margin_bottom = 74.0
+rect_min_size = Vector2( 0, 30 )
+
+[node name="Choices" type="VBoxContainer" parent="Menu/TitleChoices"]
+margin_top = 78.0
+margin_right = 360.0
+margin_bottom = 103.0
 rect_min_size = Vector2( 0, 25 )
 
+[node name="Spacer" type="Control" parent="Menu/TitleChoices"]
+margin_top = 107.0
+margin_right = 360.0
+margin_bottom = 137.0
+rect_min_size = Vector2( 0, 30 )
+
+[node name="Highscore" type="RichTextLabel" parent="Menu/TitleChoices"]
+margin_top = 141.0
+margin_right = 360.0
+margin_bottom = 171.0
+rect_min_size = Vector2( 200, 30 )
+script = ExtResource( 14 )
+
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="Menu/TitleChoices"]
-stream = ExtResource( 13 )
+stream = ExtResource( 15 )
+volume_db = -7.0
 
 [node name="EndLevelDialog" type="Control" parent="."]
 visible = false
@@ -408,7 +437,7 @@ __meta__ = {
 }
 
 [node name="Background" type="TextureRect" parent="EndLevelDialog"]
-modulate = Color( 1, 1, 1, 0.627451 )
+modulate = Color( 1, 1, 1, 0.705882 )
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -435,35 +464,35 @@ rect_min_size = Vector2( 200, 100 )
 rect_clip_content = true
 size_flags_horizontal = 0
 size_flags_vertical = 0
+custom_constants/separation = 0
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="Title" type="RichTextLabel" parent="EndLevelDialog/TextContainer"]
-margin_right = 200.0
+margin_right = 300.0
 margin_bottom = 25.0
-rect_min_size = Vector2( 200, 25 )
+rect_min_size = Vector2( 300, 25 )
 size_flags_horizontal = 0
-size_flags_vertical = 0
 custom_fonts/normal_font = SubResource( 3 )
 custom_colors/default_color = Color( 0, 0, 0, 1 )
 bbcode_enabled = true
-bbcode_text = "Level Complete"
-text = "Level Complete"
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="Subtitle" type="RichTextLabel" parent="EndLevelDialog/TextContainer"]
-margin_top = 29.0
-margin_right = 200.0
-margin_bottom = 29.0
+margin_top = 25.0
+margin_right = 300.0
+margin_bottom = 50.0
+rect_min_size = Vector2( 200, 25 )
 custom_fonts/normal_font = SubResource( 11 )
+custom_colors/default_color = Color( 0, 0, 0, 1 )
 
 [node name="ScoreReport" type="HBoxContainer" parent="EndLevelDialog/TextContainer"]
-margin_top = 33.0
-margin_right = 200.0
-margin_bottom = 33.0
+margin_top = 50.0
+margin_right = 300.0
+margin_bottom = 50.0
 size_flags_horizontal = 5
 
 [node name="ScrollContainer" type="ScrollContainer" parent="EndLevelDialog/TextContainer/ScoreReport"]
@@ -490,17 +519,17 @@ text = "TEST text"
 script = ExtResource( 14 )
 
 [node name="Spacer" type="Control" parent="EndLevelDialog/TextContainer"]
-margin_top = 37.0
-margin_right = 200.0
-margin_bottom = 47.0
+margin_top = 50.0
+margin_right = 300.0
+margin_bottom = 60.0
 rect_min_size = Vector2( 0, 10 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="Control" type="Control" parent="EndLevelDialog/TextContainer"]
-margin_top = 51.0
-margin_right = 200.0
+margin_top = 60.0
+margin_right = 300.0
 margin_bottom = 388.0
 size_flags_horizontal = 3
 size_flags_vertical = 3

@@ -37,7 +37,22 @@ func show_main_menu():
     tc.visible = true
     title = tc.get_node("Title")
     title.bbcode_text = "[center]Menu[/center]"
-    tc.set_choices(["Play", "Highscores", "Options"])
+    tc.set_choices(["Play", "How to Play"])
+    var scores = Global.load_highscores()
+    var highest = []
+    var highest_level = 0
+    for score in scores:
+#        var score = score_array[0]
+        if score.level == highest_level:
+            highest.append(score)
+        elif score.level > highest_level:
+            highest_level = score.level
+            highest = [score]
+    var time = INF
+    for h in highest:
+        if h.time < time:
+            time = h.time
+    tc.show_highscore(highest_level, time)
 
 func _input(e):
     if tbn.visible:
@@ -49,14 +64,16 @@ func _input(e):
             if the_choice == "Play":
                 set_process_input(false)
                 emit_signal("play_game")
-            elif the_choice == "Highscores":
-                pass
-            elif the_choice == "Options":
-                pass
+            elif the_choice == "How to Play":
+                tc.visible = false
+                tbn.visible = true
+                title = tbn.get_node("Title")
+                title.set_bbcode("How to Play")
+                body.set_bbcode("Arrow keys to move, 'A' to connect two nodes (if you are close enough to the nodes). Your objective in each level is to connect all nodes within 20 seconds while losing at most 2 lives. What's the highest level you can reach, in the least time possible?")
+                next.set_bbcode("Press ENTER to Return")
             else:
                 print("Warning: invalid choice " + str(the_choice))
         if e.is_action_pressed("ui_down"):
-            print("still printing!")
             tc.next_choice()
         if e.is_action_pressed("ui_up"):
             tc.prev_choice()
