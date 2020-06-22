@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=2]
+[gd_scene load_steps=29 format=2]
 
 [ext_resource path="res://CRM.tscn" type="PackedScene" id=1]
 [ext_resource path="res://src/Network.gd" type="Script" id=2]
@@ -31,18 +31,18 @@ b = Vector2( 0, 288 )
 a = Vector2( 480, 0 )
 b = Vector2( 480, 288 )
 
-[sub_resource type="DynamicFont" id=9]
+[sub_resource type="DynamicFont" id=5]
 font_data = ExtResource( 5 )
 
-[sub_resource type="DynamicFont" id=10]
+[sub_resource type="DynamicFont" id=6]
 size = 64
 font_data = ExtResource( 5 )
 
-[sub_resource type="GDScript" id=8]
+[sub_resource type="GDScript" id=7]
 script/source = "extends Control
 
 signal next_level
-signal redo_level
+signal restart
 
 onready var title = $VBoxContainer/LevelComplete
 onready var score_label = $VBoxContainer/ScoreReport
@@ -54,28 +54,28 @@ var level_complete = false
 func _ready():
     set_process_input(false)
 
-func show_final_score(lvl_score):
-    level_complete = true
-    $game_complete.play()
+func show_score(level_score):
     visible = true
-    title.bbcode_text = \"[center]Game Complete[/center]\"
-    score_label.bbcode_text = \"[center]Total time: \" + (\"%.2f\" % Global.total_score) + \"[/center]\"
-    next_text.bbcode_text = \"[center]Press ENTER to set a higher score![/center]\"
-    accept_next(1.0)
+    level_complete = true
+    var game_complete
+    if Global.level_idx == len(Global.level_params) - 1:
+        game_complete = true
+    if game_complete:
+        $game_complete.play()
+        title.bbcode_text = \"[center]Game Complete[/center]\"
+        score_label.bbcode_text = \"[center]Total time: \" + (\"%.2f\" % Global.total_score) + \"[/center]\"
+        next_text.bbcode_text = \"[center]Press ENTER to set a higher score![/center]\"
+    else:
+        $level_complete.play()
+        title.bbcode_text = \"[center]Level Complete[/center]\"
+        score_label.bbcode_text = \"[center]Time: \" + (\"%.2f\" % level_score) + \"[/center]\"
+        next_text.bbcode_text = \"[center]Press ENTER for level \" + str(Global.level_idx + 2) + \"[/center]\"
+    accept_next(0.5)
 
-func show_level_score(score):
-    level_complete = true
-    $level_complete.play()
-    visible = true
-    title.bbcode_text = \"[center]Level Complete[/center]\"
-    score_label.bbcode_text = \"[center]Time: \" + (\"%.2f\" % score) + \"[/center]\"
-    next_text.bbcode_text = \"[center]Press ENTER for level \" + str(Global.lvl_idx + 2) + \"[/center]\"
-    accept_next()
-    
 func show_game_over():
+    visible = true
     $game_over.play()
     level_complete = false
-    visible = true
     title.bbcode_text = \"[center]Game Over[/center]\"
     if Global.crm.lives < 0:
         score_label.bbcode_text = \"[center]No More Lives[/center]\"
@@ -84,6 +84,7 @@ func show_game_over():
     next_text.bbcode_text = \"[center]Press ENTER to restart[/center]\"
     accept_next()
 
+# Protect user from themselves, throwing away an awesome highscore.
 func accept_next(min_wait = 0.4):
     timer = Timer.new()
     self.add_child(timer)
@@ -103,18 +104,18 @@ func _input(event):
         if level_complete:
             emit_signal(\"next_level\")
         else:
-            emit_signal(\"redo_level\")
+            emit_signal(\"restart\")
 "
 
-[sub_resource type="DynamicFont" id=5]
+[sub_resource type="DynamicFont" id=8]
 size = 14
 font_data = ExtResource( 8 )
 
-[sub_resource type="DynamicFont" id=6]
+[sub_resource type="DynamicFont" id=9]
 size = 14
 font_data = ExtResource( 8 )
 
-[sub_resource type="GDScript" id=7]
+[sub_resource type="GDScript" id=10]
 script/source = "extends RichTextLabel
 
 var tween_alphas = [1.0, 0.0]
@@ -140,6 +141,14 @@ func _on_tween_completed(object, key):
 
 [sub_resource type="DynamicFont" id=11]
 font_data = ExtResource( 5 )
+
+[sub_resource type="GDScript" id=12]
+script/source = "extends RichTextLabel
+
+
+func set_lives(lives):
+    bbcode_text = \"Lives: \" + str(max(0, Global.crm.lives))
+"
 
 [node name="Game" type="Node2D"]
 script = ExtResource( 6 )
@@ -194,7 +203,7 @@ margin_bottom = 120.0
 rect_min_size = Vector2( 480, 120 )
 rect_clip_content = false
 size_flags_horizontal = 3
-custom_fonts/normal_font = SubResource( 9 )
+custom_fonts/normal_font = SubResource( 5 )
 bbcode_enabled = true
 scroll_active = false
 script = ExtResource( 7 )
@@ -212,7 +221,7 @@ margin_top = -34.9999
 margin_right = 240.0
 margin_bottom = 65.0002
 rect_min_size = Vector2( 480, 100 )
-custom_fonts/normal_font = SubResource( 10 )
+custom_fonts/normal_font = SubResource( 6 )
 bbcode_enabled = true
 bbcode_text = "[center]test[/center]"
 text = "test"
@@ -225,16 +234,16 @@ __meta__ = {
 stream = ExtResource( 12 )
 volume_db = -9.087
 
-[node name="WinDialog" type="Control" parent="UI"]
+[node name="EndLevelDialog" type="Control" parent="UI"]
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = SubResource( 8 )
+script = SubResource( 7 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="TextureRect" type="TextureRect" parent="UI/WinDialog"]
+[node name="TextureRect" type="TextureRect" parent="UI/EndLevelDialog"]
 modulate = Color( 1, 1, 1, 0.784314 )
 anchor_left = 0.5
 anchor_top = 0.5
@@ -251,7 +260,7 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/WinDialog"]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/EndLevelDialog"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 90.0
@@ -265,18 +274,18 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Spacer" type="Control" parent="UI/WinDialog/VBoxContainer"]
+[node name="Spacer" type="Control" parent="UI/EndLevelDialog/VBoxContainer"]
 margin_right = 300.0
 margin_bottom = 10.0
 rect_min_size = Vector2( 0, 10 )
 
-[node name="LevelComplete" type="RichTextLabel" parent="UI/WinDialog/VBoxContainer"]
+[node name="LevelComplete" type="RichTextLabel" parent="UI/EndLevelDialog/VBoxContainer"]
 margin_top = 14.0
 margin_right = 300.0
 margin_bottom = 39.0
 rect_min_size = Vector2( 200, 25 )
 size_flags_vertical = 0
-custom_fonts/normal_font = SubResource( 5 )
+custom_fonts/normal_font = SubResource( 8 )
 custom_colors/default_color = Color( 0, 0, 0, 1 )
 bbcode_enabled = true
 bbcode_text = "[center]Level Complete[/center]"
@@ -285,18 +294,18 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="ScoreReport" type="RichTextLabel" parent="UI/WinDialog/VBoxContainer"]
+[node name="ScoreReport" type="RichTextLabel" parent="UI/EndLevelDialog/VBoxContainer"]
 margin_top = 43.0
 margin_right = 300.0
 margin_bottom = 68.0
 rect_min_size = Vector2( 0, 25 )
-custom_fonts/normal_font = SubResource( 6 )
+custom_fonts/normal_font = SubResource( 9 )
 custom_colors/default_color = Color( 0, 0, 0, 1 )
 bbcode_enabled = true
 bbcode_text = "[center]Time: 14.79s[/center]"
 text = "Time: 14.79s"
 
-[node name="Control" type="Control" parent="UI/WinDialog/VBoxContainer"]
+[node name="Control" type="Control" parent="UI/EndLevelDialog/VBoxContainer"]
 margin_top = 72.0
 margin_right = 300.0
 margin_bottom = 97.0
@@ -305,36 +314,36 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="NextLevel" type="RichTextLabel" parent="UI/WinDialog/VBoxContainer/Control"]
+[node name="NextLevel" type="RichTextLabel" parent="UI/EndLevelDialog/VBoxContainer/Control"]
 margin_top = 4.0
 margin_right = 600.0
 margin_bottom = 29.0
 rect_min_size = Vector2( 0, 25 )
 rect_scale = Vector2( 0.5, 0.5 )
 size_flags_horizontal = 3
-custom_fonts/normal_font = SubResource( 6 )
+custom_fonts/normal_font = SubResource( 9 )
 custom_colors/default_color = Color( 0, 0, 0, 1 )
 bbcode_enabled = true
 bbcode_text = "[center]PRESS ENTER TO CONTINUE[/center]"
 text = "PRESS ENTER TO CONTINUE"
-script = SubResource( 7 )
+script = SubResource( 10 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="Tween" type="Tween" parent="UI/WinDialog/VBoxContainer/Control/NextLevel"]
+[node name="Tween" type="Tween" parent="UI/EndLevelDialog/VBoxContainer/Control/NextLevel"]
 repeat = true
 playback/repeat = true
 
-[node name="level_complete" type="AudioStreamPlayer" parent="UI/WinDialog"]
+[node name="level_complete" type="AudioStreamPlayer" parent="UI/EndLevelDialog"]
 stream = ExtResource( 15 )
 volume_db = -7.0
 
-[node name="game_complete" type="AudioStreamPlayer" parent="UI/WinDialog"]
+[node name="game_complete" type="AudioStreamPlayer" parent="UI/EndLevelDialog"]
 stream = ExtResource( 14 )
 volume_db = -7.0
 
-[node name="game_over" type="AudioStreamPlayer" parent="UI/WinDialog"]
+[node name="game_over" type="AudioStreamPlayer" parent="UI/EndLevelDialog"]
 stream = ExtResource( 16 )
 volume_db = -7.0
 
@@ -344,6 +353,7 @@ margin_bottom = 40.0
 rect_min_size = Vector2( 100, 20 )
 custom_fonts/normal_font = SubResource( 11 )
 bbcode_enabled = true
+script = SubResource( 12 )
 __meta__ = {
 "_edit_use_anchors_": false
 }

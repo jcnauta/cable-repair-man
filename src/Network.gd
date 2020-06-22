@@ -4,6 +4,7 @@ signal single_network
 signal no_solutions
 
 var Grid = preload("res://src/Grid.gd")
+var EdgeScene = preload("res://Edge.tscn")
 
 onready var nodes = $Nodes
 onready var edges = $Edges
@@ -12,11 +13,22 @@ onready var crm = $"../CRM"
 onready var spawnpoint = $Spawnpoint
 
 var grid
+# two_target_nodes and shadow_edge are used to indicate the next placeable path
 var two_target_nodes = [null, null]
+var shadow_edge
 
 func _ready():
     randomize()
-    generate_new_level()
+    restart()
+
+func restart():
+    var generate_level_tries = 0
+    while generate_level_tries < 100:
+        var success = generate_new_level()
+        if success:
+            break
+        generate_level_tries += 1
+    connect_signals()
 
 func _physics_process(delta):
     update_target_nodes()
@@ -28,7 +40,7 @@ func connect_signals():
         n.connect("subnet_assimilated", self, "check_single_network")
 
 func generate_nodes():
-    for max_nnodes in Global.level_params[Global.lvl_idx]["max_nnodes"]:
+    for max_nnodes in Global.level_params[Global.level_idx]["max_nnodes"]:
         var new_node = grid.place_node()
         if new_node != null:
             nodes.add_child(new_node)
@@ -65,19 +77,18 @@ func create_node_connections(subnets = 1):
     var all_nodes = nodes.get_children()
     if len(all_nodes) <= 1:
         return
-    for i in Global.level_params[Global.lvl_idx]["max_init_connections"]:
+    for i in Global.level_params[Global.level_idx]["max_init_connections"]:
         var success = connect_two_subnets(all_nodes)
         if not success:
-#            print("failed to connect subnets!")
             pass
 
 func crm_create_edge():
     if two_target_nodes[0] != null and two_target_nodes[1] != null:
-        connect_two_nodes(two_target_nodes[0], two_target_nodes[1], "harmless")
+        connect_two_nodes(two_target_nodes[0], two_target_nodes[1], "warning")
         if not is_fully_connected(true):
             emit_signal("no_solutions")
     
-func connect_two_nodes(node0, node1, init_edge_state = "danger"):
+func connect_two_nodes(node0, node1, init_edge_state):
     if node0.connected_to(node1):
         return false
     var edge = grid.create_edge(node0, node1)
@@ -86,6 +97,14 @@ func connect_two_nodes(node0, node1, init_edge_state = "danger"):
         node0.connect_neighbor(node1, edge)
         edges.add_child(edge)
         edge.connect_enter_body(crm)
+        if init_edge_state == null:
+            var init_state_var = randf()
+            if init_state_var < 0.2:
+                init_edge_state = "warning"
+            elif init_state_var < 0.5:
+                init_edge_state = "danger"
+            else:
+                init_edge_state = "harmless"
         edge.set_state(init_edge_state, false)
         node0.maybe_assimilate_subnet(node1)
         return true
@@ -95,54 +114,85 @@ func connect_two_nodes(node0, node1, init_edge_state = "danger"):
 func connect_two_subnets(all_nodes):
     var success = false
     for try in Global.subnet_connect_tries:
-        # select a random node to start from
-        var idx0 = randi() % len(all_nodes)
-        var node0 = all_nodes[idx0]
+        # determine all subnets
+        var subnets = []
+        for node in all_nodes:
+            if not node.subnet in subnets:
+                subnets.append(node.subnet)
+        # pick random subnet
+        var use_subnet = false
+        var subnet_idx
+        var source_subnet
+        while true:
+            subnet_idx = randi() % len(subnets)
+            source_subnet = subnets[subnet_idx]
+            if randf() < 1.0 / float(len(source_subnet)):
+                break
+            
+        # pick random node in subnet
+        var idx0 = randi() % len(source_subnet)
+        var node0 = source_subnet[idx0]
         var neighbors = grid.get_n_nearest(node0.grid_coords)
         for node1 in neighbors:
             if node0.subnet != node1.subnet:
-                success = connect_two_nodes(node0, node1)
+                success = connect_two_nodes(node0, node1, null)
                 if success:
                     break
         if success:
             break
     return success
 
-func update_target_nodes():
-    var nearest_dist = INF
-    var near_dist = INF
-    var new_targets = [null, null] # closest first, second-closest second
+# Select the nearest node that has a node from another subnet to which
+# it can connect, together with this other (nearest) node.
+func update_target_nodes(only_different_subnets = false):
+    # Get nodes in range and sort by distance
+    var in_connect_range_with_dist = []
     for node in nodes.get_children():
         var dist = node.position.distance_to(crm.position)
         if dist < Global.connect_range:
-            if dist < nearest_dist:
-                near_dist = nearest_dist
-                nearest_dist = dist
-                new_targets.push_front(node)
-            elif dist < near_dist:
-                near_dist = dist
-                new_targets[1] = node
-            if len(new_targets) == 3:
-                new_targets.pop_back()
-    var nearest_changed = false
-    for t in two_target_nodes:
-        var same = false
-        for n in new_targets:
-            if t == n:
-                same = true
+            in_connect_range_with_dist.append([dist, node])
+    in_connect_range_with_dist.sort_custom(Util, "sort_by_first")
+    var in_connect_range = Util.only_second_elements(in_connect_range_with_dist)
+    # find nearest node with nearest connectible in different subnet
+    var new_targets = [null, null]
+    var found_targets = false
+    var path_to_new_targets
+    for idx0 in len(in_connect_range) - 1:
+        var n0 = in_connect_range[idx0]
+        for idx1 in range(idx0 + 1, len(in_connect_range)):
+            var n1 = in_connect_range[idx1]
+            if (only_different_subnets and n0.subnet != n1.subnet) or \
+                    (not only_different_subnets and not n0.connected_to(n1)):
+                path_to_new_targets = grid.bfs(n0.grid_coords, n1.grid_coords)
+                if path_to_new_targets != null:
+                    new_targets = [n0, n1]
+                found_targets = true
                 break
-        if not same:
-            nearest_changed = true
+        if found_targets:
             break
-    if nearest_changed:
+    # change highlighting if nearest changed
+    if not Util.elements_equal(new_targets, two_target_nodes):
+        # remove old highlights
         for t in two_target_nodes:
             if t != null and is_instance_valid(t) and t is CNode:
                 t.set_highlight(false)
         two_target_nodes = new_targets
+        # set new highlights
         if two_target_nodes[0] != null and two_target_nodes[1] != null:
             for t in two_target_nodes:
                 if t != null and is_instance_valid(t) and t is CNode:
                     t.set_highlight(true)
+        # remove old shadow path
+        if shadow_edge != null:
+            shadow_edge.queue_free()
+            shadow_edge = null
+        if path_to_new_targets != null:
+            shadow_edge = EdgeScene.instance()
+            add_child(shadow_edge)
+            shadow_edge.modulate.a = 0.25
+            shadow_edge.set_collision_active(false)
+            shadow_edge.set_stops(Global.grid_coords_to_positions(path_to_new_targets))
+            shadow_edge.set_state("harmless")
 
 func check_single_network():  # win if there is only a single subnet
     var the_subnet
@@ -168,13 +218,11 @@ func generate_new_level():
     grid.place_object(crm)
     spawnpoint.position = crm.position
     generate_nodes()
-    var failsafe = 0
-    while not is_fully_connected() and failsafe < 100:
-        generate_nodes()
-        failsafe += 1
-    print("took " + str(failsafe + 1) + " tries!")
-    if failsafe == 100:
-        print("Error: failed to generate connected nodes.")
+    if not is_fully_connected():
+        return false
     create_node_connections()
+    if not is_fully_connected(true):
+        return false
     set_physics_process(true)
     crm.set_physics_process(true)
+    return true

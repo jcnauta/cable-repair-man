@@ -8,7 +8,7 @@
 [ext_resource path="res://images/run_s.png" type="Texture" id=6]
 [ext_resource path="res://images/run_w.png" type="Texture" id=7]
 [ext_resource path="res://images/run_sw.png" type="Texture" id=8]
-[ext_resource path="res://sounds/footsteps.ogg" type="AudioStream" id=9]
+[ext_resource path="res://sounds/footsteps2.ogg" type="AudioStream" id=9]
 [ext_resource path="res://sounds/electrocution.ogg" type="AudioStream" id=10]
 [ext_resource path="res://images/shock.png" type="Texture" id=11]
 

@@ -1,7 +1,7 @@
 extends Node
 
-var CNode_scene = preload("res://CNode.tscn")
-var Edge_scene = preload("res://Edge.tscn")
+var CNodeScene = preload("res://CNode.tscn")
+var EdgeScene = preload("res://Edge.tscn")
 
 class_name Grid
 
@@ -60,7 +60,7 @@ func place_node():
             break
     var new_node
     if found_place:
-        new_node = CNode_scene.instance()
+        new_node = CNodeScene.instance()
         new_node.set_grid_coords(coords)
         _grid[coords.x][coords.y] = new_node
     return new_node
@@ -82,7 +82,7 @@ func can_place_node(coords):
     else:
         return false
 
-func get_n_nearest(coords, max_nodes = 6, max_dist = 6):
+func get_n_nearest(coords, max_nodes = 6, max_dist = 10):
     var nodes = []
     for dist in range(1, max_dist):
         var new_nodes = nodes_at_distance(coords, dist)
@@ -116,7 +116,7 @@ func create_edge(n0, n1):
     if path == null:
         return null
     else:
-        var edge = Edge_scene.instance()
+        var edge = EdgeScene.instance()
         edge.set_nodes(n0, n1)
         edge.set_stops(Global.grid_coords_to_positions(path))
         for coord in path:

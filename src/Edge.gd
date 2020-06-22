@@ -84,9 +84,9 @@ func update_sound_volume():
         var dist = s.distance_squared_to(Global.crm.position)
         if dist < min_dist:
             min_dist = dist
-    zap_sound.volume_db = 3 - 0.002 * min_dist
+    zap_sound.volume_db = 5 - 0.0025 * min_dist
     for warning_sound in warning_sounds:
-        warning_sound.volume_db = 3 - 0.002 * min_dist
+        warning_sound.volume_db = 1 - 0.0025 * min_dist
 #
 #func _draw():
 #    draw_polyline(draw_pool_vector, edge_color, false)
@@ -114,11 +114,12 @@ func set_state(new_state, persistent = true):
         "harmless":
             zap_sound.stop()
             if not persistent:
-                timer.wait_time = 2.0 + 2.0 * randf()
+                timer.wait_time = (1.0 + randf()) * Global.level_params[Global.level_idx]["harmless_duration"]
                 timer.connect("timeout", self, "set_state", ["warning", false])
             set_collision_active(false)
         "warning":
             zap_sound.stop()
+            warning_sounds[randi() % len(warning_sounds)].play()
             if not persistent:
                 timer.wait_time = 0.5
                 timer.connect("timeout", self, "set_state", ["danger", false])
@@ -126,7 +127,7 @@ func set_state(new_state, persistent = true):
         "danger":
             zap_sound.play()
             if not persistent:
-                timer.wait_time = 1.0 #2.0 + 4.0 * randf()
+                timer.wait_time = Global.level_params[Global.level_idx]["zap_duration"] #1.0 #2.0 + 4.0 * randf()
                 timer.connect("timeout", self, "set_state", ["harmless", false])
             set_collision_active(true)
             if Global.crm != null:

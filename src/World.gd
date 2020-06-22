@@ -11,18 +11,18 @@ func _ready():
     network.connect_signals()
     network.connect("single_network", self, "_show_level_complete")
     network.connect("no_solutions", self, "_show_game_over")
-    crm.connect("no_more_lives", self, "_show_game_over")
-    
+
+func restart():
+    crm.reset() # order matters
+    network.restart() # order matters
+
 func _show_level_complete():
-    Global.game_running = false
     emit_signal('level_complete', 1337) # dummy score
 
 func _show_game_over():
-    Global.game_running = false
     emit_signal('game_over')
 
 func _show_no_more_lives():
-    Global.game_running = false
     emit_signal('no_more_lives')
 
 func deferred_next_level():
@@ -32,6 +32,11 @@ func deferred_next_level():
 
 func next_level():
     crm.reset()
-    network.generate_new_level()
+    var generate_level_tries = 0
+    while generate_level_tries < 100:
+        var success = network.generate_new_level()
+        if success:
+            break
+        generate_level_tries += 1
     network.connect_signals()
 #    network.connect("next_level", self, "deferred_next_level")

@@ -33,7 +33,6 @@ func _on_tween_completed(object, key):
     text_idx += 1
     if text_idx == len(texts) - 1:
         emit_signal("countdown_finished")
-        level_timer.start_time()
     if text_idx < len(texts):
         _do_countdown()
 

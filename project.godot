@@ -39,6 +39,7 @@ config/icon="res://icon.png"
 [autoload]
 
 Global="*res://src/Global.gd"
+Util="*res://src/Util.gd"
 
 [display]
 

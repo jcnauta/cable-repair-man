@@ -4,25 +4,42 @@ var tile_dims = Vector2(16, 16)
 var crm
 var game_running = false
 var total_score = 0.0
-var lvl_idx = 0
-var last_lvl = 2
+var level_idx = 0
 var connect_range = 80.0
 var max_partition_dist = 2 * connect_range - 20.0
 var subnet_connect_tries = 30
-var start_lives = 3
+var start_lives = 1
 
 var level_params = [
+#    {
+#        "max_nnodes": 10,
+#        "max_init_connections": 15,
+#        "harmless_duration": 3.0,
+#        "zap_duration": 1.0
+#    },
+#    {
+#        "max_nnodes": 15,
+#        "max_init_connections": 20,
+#        "harmless_duration": 2.5,
+#        "zap_duration": 1.2
+#    },
+#    {
+#        "max_nnodes": 20,
+#        "max_init_connections": 25,
+#        "harmless_duration": 2.2,
+#        "zap_duration": 1.4
+#    },
     {
-        "max_nnodes": 10,
-        "max_init_connections": 10
-    },
-    {
-        "max_nnodes": 20,
-        "max_init_connections": 20
+        "max_nnodes": 25,
+        "max_init_connections": 30,
+        "harmless_duration": 1.8,
+        "zap_duration": 1.5
     },
     {
         "max_nnodes": 30,
-        "max_init_connections": 30
+        "max_init_connections": 30,
+        "harmless_duration": 1.6,
+        "zap_duration": 1.6
     },
 ]
 
